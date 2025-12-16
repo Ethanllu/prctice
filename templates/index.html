@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI美股分析软件 - 未来一个月走势预测</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .search-section {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .popular-stocks {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .stock-tag {
+            padding: 8px 15px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .stock-tag:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .stock-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .info-item label {
+            display: block;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .info-item .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .prediction-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .prediction-box h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .prediction-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .prediction-stat {
+            text-align: center;
+        }
+
+        .prediction-stat .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .prediction-stat .value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .signals-section {
+            margin-top: 30px;
+        }
+
+        .recommendation {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .recommendation.buy {
+            background: #10b981;
+            color: white;
+        }
+
+        .recommendation.sell {
+            background: #ef4444;
+            color: white;
+        }
+
+        .recommendation.hold {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .signals-list {
+            list-style: none;
+        }
+
+        .signals-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+        }
+
+        .chart-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .chart-container img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #c33;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI美股分析软件</h1>
+            <p>预测未来一个月（30天）的股票走势</p>
+        </div>
+
+        <div class="card">
+            <div class="search-section">
+                <div class="form-group">
+                    <label for="symbol">股票代码</label>
+                    <input type="text" id="symbol" placeholder="例如: AAPL, MSFT, TSLA" value="AAPL" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label for="period">数据周期</label>
+                    <select id="period">
+                        <option value="1mo" selected>1个月</option>
+                        <option value="3mo">3个月</option>
+                        <option value="6mo">6个月</option>
+                        <option value="1y">1年</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="use_ai" checked>
+                        <label for="use_ai" style="margin: 0;">使用AI预测</label>
+                    </div>
+                </div>
+                <button class="btn" onclick="analyzeStock()">开始分析</button>
+            </div>
+            <div class="popular-stocks" id="popularStocks">
+                <span style="color: #666; margin-right: 10px;">热门股票:</span>
+            </div>
+        </div>
+
+        <div id="loading" class="card loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在分析股票数据，请稍候...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results">
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">📊 股票信息</h2>
+                <div class="stock-info" id="stockInfo"></div>
+            </div>
+
+            <div class="card">
+                <div class="prediction-box">
+                    <h2>🔮 未来一个月走势预测</h2>
+                    <div class="prediction-stats" id="predictionStats"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">📈 价格走势图</h2>
+                <div class="chart-container" id="priceChart"></div>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">🔮 预测走势图</h2>
+                <div class="chart-container" id="predictionChart"></div>
+            </div>
+
+            <div class="card signals-section">
+                <h2 style="margin-bottom: 20px;">💡 技术信号分析</h2>
+                <div id="recommendation"></div>
+                <ul class="signals-list" id="signalsList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 加载热门股票
+        async function loadPopularStocks() {
+            try {
+                const response = await fetch('/api/popular-stocks');
+                const stocks = await response.json();
+                const container = document.getElementById('popularStocks');
+                stocks.forEach(stock => {
+                    const tag = document.createElement('span');
+                    tag.className = 'stock-tag';
+                    tag.textContent = `${stock.symbol} - ${stock.name}`;
+                    tag.onclick = () => {
+                        document.getElementById('symbol').value = stock.symbol;
+                        analyzeStock();
+                    };
+                    container.appendChild(tag);
+                });
+            } catch (error) {
+                console.error('加载热门股票失败:', error);
+            }
+        }
+
+        // 分析股票
+        async function analyzeStock() {
+            const symbol = document.getElementById('symbol').value.trim().toUpperCase();
+            const period = document.getElementById('period').value;
+            const useAi = document.getElementById('use_ai').checked;
+
+            if (!symbol) {
+                showError('请输入股票代码');
+                return;
+            }
+
+            // 显示加载状态
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        period: period,
+                        use_ai: useAi
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.error || '分析失败');
+                    return;
+                }
+
+                displayResults(data);
+
+            } catch (error) {
+                showError('网络错误: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // 显示结果
+        function displayResults(data) {
+            // 显示股票信息
+            const stockInfo = document.getElementById('stockInfo');
+            stockInfo.innerHTML = '';
+            
+            if (data.stock_info) {
+                const info = data.stock_info;
+                addInfoItem(stockInfo, '股票名称', info.name || 'N/A');
+                addInfoItem(stockInfo, '行业', info.industry || 'N/A');
+                addInfoItem(stockInfo, '当前价格', info.current_price ? `$${info.current_price.toFixed(2)}` : 'N/A');
+                if (info.market_cap) {
+                    addInfoItem(stockInfo, '市值', `$${(info.market_cap / 1e9).toFixed(2)}B`);
+                }
+                if (info.pe_ratio) {
+                    addInfoItem(stockInfo, '市盈率', info.pe_ratio.toFixed(2));
+                }
+            }
+
+            // 显示预测结果
+            if (data.prediction) {
+                const pred = data.prediction;
+                const statsContainer = document.getElementById('predictionStats');
+                statsContainer.innerHTML = '';
+                
+                addPredictionStat(statsContainer, '当前价格', `$${pred.current_price.toFixed(2)}`);
+                addPredictionStat(statsContainer, '预测价格', `$${pred.predicted_price.toFixed(2)}`);
+                addPredictionStat(statsContainer, '预期变化', `${pred.change_percent >= 0 ? '+' : ''}${pred.change_percent.toFixed(2)}%`);
+                addPredictionStat(statsContainer, '趋势', pred.trend);
+            }
+
+            // 显示技术信号
+            if (data.signals) {
+                const signals = data.signals;
+                const recommendation = document.getElementById('recommendation');
+                recommendation.innerHTML = `<span class="recommendation ${signals.recommendation.toLowerCase()}">${signals.recommendation}</span>`;
+                
+                const signalsList = document.getElementById('signalsList');
+                signalsList.innerHTML = '';
+                signals.signals_list.forEach(signal => {
+                    const li = document.createElement('li');
+                    li.textContent = signal;
+                    signalsList.appendChild(li);
+                });
+            }
+
+            // 显示图表
+            if (data.charts) {
+                if (data.charts.price_chart) {
+                    document.getElementById('priceChart').innerHTML = 
+                        `<img src="data:image/png;base64,${data.charts.price_chart}" alt="价格走势图">`;
+                }
+                if (data.charts.prediction_chart) {
+                    document.getElementById('predictionChart').innerHTML = 
+                        `<img src="data:image/png;base64,${data.charts.prediction_chart}" alt="预测走势图">`;
+                }
+            }
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function addInfoItem(container, label, value) {
+            const item = document.createElement('div');
+            item.className = 'info-item';
+            item.innerHTML = `<label>${label}</label><div class="value">${value}</div>`;
+            container.appendChild(item);
+        }
+
+        function addPredictionStat(container, label, value) {
+            const stat = document.createElement('div');
+            stat.className = 'prediction-stat';
+            stat.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>`;
+            container.appendChild(stat);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // 回车键搜索
+        document.getElementById('symbol').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzeStock();
+            }
+        });
+
+        // 页面加载时获取热门股票
+        loadPopularStocks();
+    </script>
+</body>
+</html>
+
