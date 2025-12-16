@@ -17,7 +17,7 @@ def main():
                        default='AAPL')
     parser.add_argument('--period', '-p', type=str, 
                        help='时间周期（1mo, 3mo, 6mo, 1y等）', 
-                       default='1y')
+                       default='1mo')
     parser.add_argument('--no-train', action='store_true',
                        help='跳过模型训练，仅进行信号分析')
     parser.add_argument('--no-plot', action='store_true',

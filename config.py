@@ -11,7 +11,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 DEFAULT_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN']
 
 # 数据获取参数
-DEFAULT_PERIOD = '1y'  # 1年数据
+DEFAULT_PERIOD = '1mo'  # 1个月数据
 DEFAULT_INTERVAL = '1d'  # 日线数据
 
 # AI模型参数
