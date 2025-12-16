@@ -423,6 +423,14 @@
                     return;
                 }
 
+                // 调试信息
+                console.log('分析结果:', data);
+                console.log('是否有预测:', !!data.prediction);
+                console.log('是否有图表:', !!data.charts);
+                if (data.charts) {
+                    console.log('预测图表存在:', !!data.charts.prediction_chart);
+                }
+
                 displayResults(data);
 
             } catch (error) {
@@ -487,11 +495,28 @@
                 if (data.charts.price_chart) {
                     document.getElementById('priceChart').innerHTML = 
                         `<img src="data:image/png;base64,${data.charts.price_chart}" alt="价格走势图">`;
+                } else {
+                    document.getElementById('priceChart').innerHTML = 
+                        '<p style="color: #999; text-align: center;">价格走势图生成失败</p>';
                 }
+                
                 if (data.charts.prediction_chart) {
                     document.getElementById('predictionChart').innerHTML = 
                         `<img src="data:image/png;base64,${data.charts.prediction_chart}" alt="预测走势图">`;
+                } else {
+                    // 如果没有预测图表，显示提示信息
+                    let message = '预测走势图未生成';
+                    if (!data.prediction) {
+                        message += '（未获取到预测数据，请确保已启用AI预测）';
+                    }
+                    document.getElementById('predictionChart').innerHTML = 
+                        `<p style="color: #999; text-align: center; padding: 20px;">${message}</p>`;
                 }
+            } else {
+                document.getElementById('priceChart').innerHTML = 
+                    '<p style="color: #999; text-align: center;">图表数据未生成</p>';
+                document.getElementById('predictionChart').innerHTML = 
+                    '<p style="color: #999; text-align: center;">预测图表数据未生成</p>';
             }
 
             document.getElementById('results').style.display = 'block';

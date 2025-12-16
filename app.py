@@ -56,10 +56,26 @@ def analyze_stock():
         if use_ai:
             try:
                 analysis_result = analyzer.full_analysis(stock_data)
+                print(f"AI分析成功，包含预测: {'prediction' in analysis_result}")
             except Exception as e:
-                # 如果AI分析失败，改用技术信号分析
-                signals = analyzer.analyze_signals(stock_data)
-                analysis_result = {'signals': signals}
+                print(f"AI分析失败: {e}")
+                # 如果AI分析失败，尝试只做预测（不训练模型）
+                try:
+                    # 先训练模型
+                    analyzer.train_model(stock_data)
+                    # 然后预测
+                    prediction = analyzer.predict(stock_data)
+                    signals = analyzer.analyze_signals(stock_data)
+                    analysis_result = {
+                        'signals': signals,
+                        'prediction': prediction
+                    }
+                    print("使用备用预测方法成功")
+                except Exception as e2:
+                    print(f"备用预测方法也失败: {e2}")
+                    # 最后回退到只做技术信号分析
+                    signals = analyzer.analyze_signals(stock_data)
+                    analysis_result = {'signals': signals}
         else:
             signals = analyzer.analyze_signals(stock_data)
             analysis_result = {'signals': signals}
@@ -125,8 +141,11 @@ def analyze_stock():
         try:
             chart_data = generate_chart_data(stock_data, symbol, analysis_result)
             result['charts'] = chart_data
+            print(f"图表生成成功: price_chart={'price_chart' in chart_data}, prediction_chart={'prediction_chart' in chart_data}")
         except Exception as e:
             print(f"生成图表时出错: {e}")
+            import traceback
+            traceback.print_exc()
             result['charts'] = None
         
         return jsonify(result)

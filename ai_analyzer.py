@@ -237,6 +237,72 @@ class StockAnalyzer:
             'macd_signal': latest['MACD_Signal']
         }
     
+    def simple_predict(self, df):
+        """
+        简单预测方法（当数据量不足时使用）
+        基于技术指标和趋势的简单预测
+        
+        参数:
+            df: 股票数据DataFrame
+        
+        返回:
+            dict: 预测结果
+        """
+        from config import PREDICTION_DAYS
+        from datetime import datetime, timedelta
+        
+        data = self.indicators.add_all_indicators(df.copy())
+        current_price = df['Close'].iloc[-1]
+        
+        # 基于最近趋势的简单预测
+        recent_prices = df['Close'].tail(10).values
+        price_trend = (recent_prices[-1] - recent_prices[0]) / recent_prices[0] * 100
+        
+        # 基于RSI调整
+        rsi = data['RSI'].iloc[-1]
+        if rsi < 30:
+            # 超卖，可能反弹
+            trend_factor = 1.02
+        elif rsi > 70:
+            # 超买，可能回调
+            trend_factor = 0.98
+        else:
+            trend_factor = 1.0
+        
+        # 基于MACD
+        macd = data['MACD'].iloc[-1]
+        macd_signal = data['MACD_Signal'].iloc[-1]
+        if macd > macd_signal:
+            trend_factor *= 1.01
+        else:
+            trend_factor *= 0.99
+        
+        # 计算预测价格
+        predicted_price = current_price * (trend_factor ** PREDICTION_DAYS)
+        
+        # 限制预测范围（±20%）
+        if predicted_price > current_price * 1.2:
+            predicted_price = current_price * 1.2
+        elif predicted_price < current_price * 0.8:
+            predicted_price = current_price * 0.8
+        
+        change_percent = ((predicted_price - current_price) / current_price) * 100
+        
+        today = datetime.now().date()
+        prediction_start = today
+        prediction_end = today + timedelta(days=PREDICTION_DAYS)
+        
+        return {
+            'current_price': current_price,
+            'predicted_price': predicted_price,
+            'prediction_days': PREDICTION_DAYS,
+            'change_percent': change_percent,
+            'trend': '上涨' if change_percent > 0 else '下跌',
+            'prediction_start': prediction_start.strftime('%Y-%m-%d'),
+            'prediction_end': prediction_end.strftime('%Y-%m-%d'),
+            'method': 'simple'  # 标记为简单预测方法
+        }
+    
     def full_analysis(self, df):
         """
         完整分析（训练模型 + 预测 + 信号分析）
@@ -249,20 +315,30 @@ class StockAnalyzer:
         """
         print("\n=== 开始AI分析 ===")
         
-        # 训练模型
-        train_results = self.train_model(df)
-        
-        # 预测
-        prediction = self.predict(df)
+        # 尝试训练模型
+        try:
+            train_results = self.train_model(df)
+            # 预测
+            prediction = self.predict(df)
+            prediction['method'] = 'ai'  # 标记为AI预测方法
+        except Exception as e:
+            print(f"AI模型训练失败: {e}")
+            print("使用简单预测方法...")
+            train_results = None
+            prediction = self.simple_predict(df)
         
         # 信号分析
         signals = self.analyze_signals(df)
         
-        return {
-            'model_performance': train_results,
+        result = {
             'prediction': prediction,
             'signals': signals
         }
+        
+        if train_results:
+            result['model_performance'] = train_results
+        
+        return result
 
 
 if __name__ == '__main__':
