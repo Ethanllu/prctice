@@ -292,9 +292,10 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+            <div class="header">
             <h1>🤖 AI美股分析软件</h1>
-            <p>预测未来一个月（30天）的股票走势</p>
+            <p>从今天起预测未来一个月（30天）的股票走势</p>
+            <p style="font-size: 0.9em; opacity: 0.8; margin-top: 5px;">当前日期: <span id="currentDate"></span></p>
         </div>
 
         <div class="card">
@@ -456,6 +457,10 @@
                 const statsContainer = document.getElementById('predictionStats');
                 statsContainer.innerHTML = '';
                 
+                // 显示预测日期范围
+                if (pred.prediction_start && pred.prediction_end) {
+                    addPredictionStat(statsContainer, '预测期间', `${pred.prediction_start}<br>至 ${pred.prediction_end}`);
+                }
                 addPredictionStat(statsContainer, '当前价格', `$${pred.current_price.toFixed(2)}`);
                 addPredictionStat(statsContainer, '预测价格', `$${pred.predicted_price.toFixed(2)}`);
                 addPredictionStat(statsContainer, '预期变化', `${pred.change_percent >= 0 ? '+' : ''}${pred.change_percent.toFixed(2)}%`);
@@ -505,6 +510,12 @@
             stat.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>`;
             container.appendChild(stat);
         }
+        
+        // 获取今天的日期
+        function getTodayDate() {
+            const today = new Date();
+            return today.toISOString().split('T')[0];
+        }
 
         function showError(message) {
             const errorDiv = document.getElementById('error');
@@ -519,6 +530,9 @@
             }
         });
 
+        // 显示当前日期
+        document.getElementById('currentDate').textContent = getTodayDate();
+        
         // 页面加载时获取热门股票
         loadPopularStocks();
     </script>

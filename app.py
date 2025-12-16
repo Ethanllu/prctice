@@ -12,6 +12,9 @@ from config import DEFAULT_PERIOD, PREDICTION_DAYS
 import base64
 import io
 from matplotlib.figure import Figure
+from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
@@ -94,12 +97,19 @@ def analyze_stock():
         # 添加预测结果
         if 'prediction' in analysis_result:
             pred = analysis_result['prediction']
+            # 计算预测日期范围（从今天开始）
+            today = datetime.now().date()
+            prediction_start = today
+            prediction_end = today + timedelta(days=pred['prediction_days'])
+            
             result['prediction'] = {
                 'current_price': float(pred['current_price']),
                 'predicted_price': float(pred['predicted_price']),
                 'prediction_days': pred['prediction_days'],
                 'change_percent': float(pred['change_percent']),
-                'trend': pred['trend']
+                'trend': pred['trend'],
+                'prediction_start': prediction_start.strftime('%Y-%m-%d'),
+                'prediction_end': prediction_end.strftime('%Y-%m-%d')
             }
         
         # 添加模型性能
@@ -159,32 +169,50 @@ def generate_chart_data(df, symbol, analysis_result):
             # 历史价格
             ax2.plot(df.index, df['Close'], linewidth=2, color='#2563eb', label='历史价格')
             
-            # 预测价格（简单线性预测）
-            import pandas as pd
-            import numpy as np
-            from datetime import timedelta
-            
+            # 预测价格（从今天开始，未来30天）
             current_price = df['Close'].iloc[-1]
             predicted_price = pred['predicted_price']
             prediction_days = pred['prediction_days']
             
+            # 从今天开始预测（而不是从数据的最后一天）
+            today = datetime.now().date()
             future_dates = pd.date_range(
-                start=df.index[-1] + timedelta(days=1),
+                start=today,
                 periods=prediction_days,
                 freq='D'
             )
             
+            # 添加当前价格点（连接历史数据和预测）
+            last_date = df.index[-1].date()
+            if last_date < today:
+                # 如果数据不是最新的，添加一条线连接到今天
+                bridge_dates = pd.date_range(
+                    start=last_date + timedelta(days=1),
+                    end=today,
+                    freq='D'
+                )
+                if len(bridge_dates) > 0:
+                    bridge_prices = [current_price] * len(bridge_dates)
+                    ax2.plot(bridge_dates, bridge_prices, 
+                            linewidth=1, color='#2563eb', linestyle=':', alpha=0.5)
+            
+            # 预测价格（从今天到未来30天）
             predicted_prices = np.linspace(current_price, predicted_price, prediction_days)
             ax2.plot(future_dates, predicted_prices, 
                     linewidth=2, color='#ef4444', linestyle='--', 
-                    label=f'预测价格 ({prediction_days}天)')
+                    label=f'预测价格（{today.strftime("%Y-%m-%d")}起未来{prediction_days}天）')
             ax2.axhline(y=predicted_price, color='#ef4444', 
-                       linestyle=':', alpha=0.5, label=f'目标: ${predicted_price:.2f}')
+                       linestyle=':', alpha=0.5, label=f'目标价格: ${predicted_price:.2f}')
             
-            ax2.set_title(f'{symbol} 价格预测（未来{prediction_days}天）', fontsize=14, fontweight='bold')
+            # 标记今天
+            ax2.axvline(x=pd.Timestamp(today), color='green', linestyle='-', 
+                       linewidth=1, alpha=0.5, label=f'今天 ({today.strftime("%Y-%m-%d")})')
+            
+            ax2.set_title(f'{symbol} 价格预测（从{today.strftime("%Y-%m-%d")}起未来{prediction_days}天）', 
+                         fontsize=14, fontweight='bold')
             ax2.set_xlabel('日期', fontsize=10)
             ax2.set_ylabel('价格 ($)', fontsize=10)
-            ax2.legend()
+            ax2.legend(loc='best', fontsize=9)
             ax2.grid(True, alpha=0.3)
             fig2.tight_layout()
             

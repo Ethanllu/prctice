@@ -153,12 +153,21 @@ class StockAnalyzer:
         
         change_percent = ((predicted_price - current_price) / current_price) * 100
         
+        from datetime import datetime, timedelta
+        
+        # 计算预测日期范围（从今天开始）
+        today = datetime.now().date()
+        prediction_start = today
+        prediction_end = today + timedelta(days=PREDICTION_DAYS)
+        
         return {
             'current_price': current_price,
             'predicted_price': predicted_price,
             'prediction_days': PREDICTION_DAYS,
             'change_percent': change_percent,
-            'trend': '上涨' if change_percent > 0 else '下跌'
+            'trend': '上涨' if change_percent > 0 else '下跌',
+            'prediction_start': prediction_start.strftime('%Y-%m-%d'),
+            'prediction_end': prediction_end.strftime('%Y-%m-%d')
         }
     
     def analyze_signals(self, df):
